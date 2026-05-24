@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Book Room – StaySync{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-primary">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.hotel_detail', hotel_id=room.hotel_id) }}" class="text-primary">{{ room.hotel.name }}</a></li>
+                    <li class="breadcrumb-item active text-muted">Book Room {{ room.room_number }}</li>
+                </ol>
+            </nav>
+
+            <!-- Room Summary -->
+            <div class="glass-panel p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="fw-bold mb-1">Room {{ room.room_number }} – {{ room.type }}</h4>
+                        <p class="text-muted mb-0"><i class="bi bi-building me-1"></i>{{ room.hotel.name }}</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-primary fs-4">₹{{ "%.0f"|format(room.price_per_night) }}</div>
+                        <small class="text-muted">per night</small>
+                    </div>
+                </div>
+                <hr class="border-secondary my-3">
+                <div class="row g-2 text-muted small">
+                    <div class="col-6"><i class="bi bi-people me-1"></i>Capacity: {{ room.capacity }} guests</div>
+                    <div class="col-6"><i class="bi bi-geo-alt me-1"></i>{{ room.hotel.location }}</div>
+                </div>
+            </div>
+
+            <!-- Booking Form -->
+            <div class="glass-panel p-4">
+                <h4 class="fw-bold mb-4"><i class="bi bi-calendar-plus me-2 text-primary"></i>Booking Details</h4>
+                <form method="POST" action="{{ url_for('main.book_room', room_id=room.id) }}" id="bookingForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="check_in" class="form-label">Check-In Date</label>
+                            <input type="date" class="form-control form-control-glass" id="check_in" name="check_in" required
+                                   min="{{ today }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="check_out" class="form-label">Check-Out Date</label>
+                            <input type="date" class="form-control form-control-glass" id="check_out" name="check_out" required
+                                   min="{{ today }}">
+                        </div>
+                    </div>
+
+                    <!-- Price Preview -->
+                    <div class="glass-panel p-3 mt-4" id="pricePreview" style="display:none;">
+                        <div class="d-flex justify-content-between text-muted small mb-1">
+                            <span>Room rate</span>
+                            <span>₹{{ "%.0f"|format(room.price_per_night) }} × <span id="numNights">0</span> nights</span>
+                        </div>
+                        <hr class="border-secondary my-2">
+                        <div class="d-flex justify-content-between fw-bold">
+                            <span>Total</span>
+                            <span class="text-primary" id="totalPrice">₹0</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100 py-3 mt-4" id="confirmBookingBtn">
+                        <i class="bi bi-check-circle me-2"></i>Confirm Booking
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const pricePerNight = {{ room.price_per_night }};
+const checkIn = document.getElementById('check_in');
+const checkOut = document.getElementById('check_out');
+const pricePreview = document.getElementById('pricePreview');
+const numNightsEl = document.getElementById('numNights');
+const totalPriceEl = document.getElementById('totalPrice');
+
+function updatePrice() {
+    const d1 = new Date(checkIn.value);
+    const d2 = new Date(checkOut.value);
+    if (checkIn.value && checkOut.value && d2 > d1) {
+        const nights = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        const total = nights * pricePerNight;
+        numNightsEl.textContent = nights;
+        totalPriceEl.textContent = '₹' + total.toLocaleString('en-IN');
+        pricePreview.style.display = 'block';
+    } else {
+        pricePreview.style.display = 'none';
+    }
+}
+
+checkIn.addEventListener('change', () => {
+    if (checkIn.value) checkOut.min = checkIn.value;
+    updatePrice();
+});
+checkOut.addEventListener('change', updatePrice);
+</script>
+{% endblock %}

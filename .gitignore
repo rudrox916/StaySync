@@ -1,0 +1,38 @@
+# ── Python ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual Environment ──────────────────────────
+venv/
+env/
+.venv/
+
+# ── Flask / App ──────────────────────────────────
+instance/
+*.db
+*.sqlite3
+
+# ── Environment Variables ────────────────────────
+.env
+.env.*
+
+# ── IDE ──────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── macOS ────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── Reports (generated PDFs) ────────────────────
+reports/pdf/
+
+# ── ML Models (large binary files) ──────────────
+ml/models/*.pkl
+ml/models/*.joblib

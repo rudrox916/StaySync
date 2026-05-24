@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Hotels – StaySync{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">All Hotels</h1>
+            <p class="text-muted mb-0">{{ hotels|length }} properties available</p>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="glass-panel p-3 mb-4">
+        <form class="row g-3" method="GET">
+            <div class="col-md-5">
+                <input type="text" class="form-control form-control-glass" name="q" placeholder="Search by name or location..." value="{{ request.args.get('q', '') }}">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-control-glass" name="sort">
+                    <option value="">Sort By</option>
+                    <option value="rating" {% if request.args.get('sort') == 'rating' %}selected{% endif %}>Rating</option>
+                    <option value="name" {% if request.args.get('sort') == 'name' %}selected{% endif %}>Name A–Z</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary-custom w-100" id="searchBtn">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if hotels %}
+    <div class="row g-4" id="hotelsGrid">
+        {% for hotel in hotels %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card glass-panel border-0 hotel-card h-100">
+                <div style="height:200px; overflow:hidden; border-radius: 12px 12px 0 0;">
+                    <img src="{{ hotel.image_url or url_for('static', filename='img/hotel_placeholder.jpg') }}"
+                         class="w-100 h-100" style="object-fit:cover;" alt="{{ hotel.name }}">
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title fw-bold mb-0">{{ hotel.name }}</h5>
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-star-fill me-1"></i>{{ hotel.rating or 'N/A' }}
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-2"><i class="bi bi-geo-alt me-1"></i>{{ hotel.location }}</p>
+                    {% if hotel.amenities %}
+                    <div class="mb-3 d-flex flex-wrap gap-1">
+                        {% for amenity in hotel.amenities.split(',')[:3] %}
+                        <span class="badge bg-primary bg-opacity-25 text-primary">{{ amenity.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('main.hotel_detail', hotel_id=hotel.id) }}" class="btn btn-primary-custom flex-fill">
+                            <i class="bi bi-eye me-1"></i>View Rooms
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 glass-panel">
+        <i class="bi bi-building fs-1 text-muted"></i>
+        <p class="text-muted mt-3 mb-0">No hotels found.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

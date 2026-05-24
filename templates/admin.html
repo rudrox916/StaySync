@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel – StaySync{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+    <div class="mb-4">
+        <h1 class="fw-bold"><i class="bi bi-shield-lock me-2 text-primary"></i>Admin Panel</h1>
+        <p class="text-muted">Manage hotels, rooms, users, and bookings</p>
+    </div>
+
+    <!-- Admin Stats -->
+    <div class="row g-4 mb-5">
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 text-center">
+                <i class="bi bi-building fs-2 text-primary mb-2"></i>
+                <div class="fw-bold fs-2">{{ stats.hotels }}</div>
+                <div class="text-muted small">Hotels</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 text-center">
+                <i class="bi bi-door-open fs-2 text-success mb-2"></i>
+                <div class="fw-bold fs-2">{{ stats.rooms }}</div>
+                <div class="text-muted small">Rooms</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 text-center">
+                <i class="bi bi-people fs-2 text-warning mb-2"></i>
+                <div class="fw-bold fs-2">{{ stats.users }}</div>
+                <div class="text-muted small">Registered Users</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 text-center">
+                <i class="bi bi-journal-text fs-2 text-info mb-2"></i>
+                <div class="fw-bold fs-2">{{ stats.bookings }}</div>
+                <div class="text-muted small">Total Bookings</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Add Hotel Form -->
+        <div class="col-lg-5">
+            <div class="glass-panel p-4">
+                <h5 class="fw-bold mb-4"><i class="bi bi-plus-circle me-2 text-primary"></i>Add New Hotel</h5>
+                <form method="POST" action="{{ url_for('main.add_hotel') }}" id="addHotelForm">
+                    <div class="mb-3">
+                        <label class="form-label">Hotel Name</label>
+                        <input type="text" class="form-control form-control-glass" name="name" placeholder="e.g. The Grand Palace" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-control form-control-glass" name="location" placeholder="e.g. Mumbai, India" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control form-control-glass" name="description" rows="2" placeholder="Brief hotel description..."></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Rating (0–5)</label>
+                            <input type="number" step="0.1" min="0" max="5" class="form-control form-control-glass" name="rating" placeholder="4.5">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Image URL</label>
+                            <input type="url" class="form-control form-control-glass" name="image_url" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amenities <small class="text-muted">(comma-separated)</small></label>
+                        <input type="text" class="form-control form-control-glass" name="amenities" placeholder="Pool, WiFi, Gym, Spa">
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom w-100" id="addHotelBtn">
+                        <i class="bi bi-plus-lg me-2"></i>Add Hotel
+                    </button>
+                </form>
+            </div>
+
+            <!-- Add Room Form -->
+            <div class="glass-panel p-4 mt-4">
+                <h5 class="fw-bold mb-4"><i class="bi bi-door-open me-2 text-success"></i>Add Room to Hotel</h5>
+                <form method="POST" action="{{ url_for('main.add_room') }}" id="addRoomForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select Hotel</label>
+                        <select class="form-select form-control-glass" name="hotel_id" required>
+                            <option value="">-- Choose Hotel --</option>
+                            {% for h in hotels %}
+                            <option value="{{ h.id }}">{{ h.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Room Number</label>
+                            <input type="text" class="form-control form-control-glass" name="room_number" placeholder="e.g. 101" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Type</label>
+                            <select class="form-select form-control-glass" name="type" required>
+                                <option value="Single">Single</option>
+                                <option value="Double">Double</option>
+                                <option value="Suite">Suite</option>
+                                <option value="Deluxe">Deluxe</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Price/Night (₹)</label>
+                            <input type="number" class="form-control form-control-glass" name="price" placeholder="2500" required min="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Capacity</label>
+                            <input type="number" class="form-control form-control-glass" name="capacity" placeholder="2" required min="1">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100" id="addRoomBtn">
+                        <i class="bi bi-plus-lg me-2"></i>Add Room
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Bookings Table -->
+        <div class="col-lg-7">
+            <div class="glass-panel p-4">
+                <h5 class="fw-bold mb-4"><i class="bi bi-list-check me-2 text-info"></i>All Bookings</h5>
+                {% if all_bookings %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle small">
+                        <thead>
+                            <tr class="text-muted">
+                                <th>#</th>
+                                <th>Guest</th>
+                                <th>Hotel / Room</th>
+                                <th>Dates</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in all_bookings %}
+                            <tr>
+                                <td class="text-muted">{{ b.id }}</td>
+                                <td>{{ b.user.username }}</td>
+                                <td>
+                                    <div>{{ b.room.hotel.name }}</div>
+                                    <div class="text-muted">Rm {{ b.room.room_number }}</div>
+                                </td>
+                                <td class="text-muted">
+                                    {{ b.check_in_date.strftime('%d/%m/%y') }} →
+                                    {{ b.check_out_date.strftime('%d/%m/%y') }}
+                                </td>
+                                <td class="text-primary fw-semibold">₹{{ "%.0f"|format(b.total_price) }}</td>
+                                <td>
+                                    <span class="badge
+                                        {% if b.status == 'confirmed' %}bg-success
+                                        {% elif b.status == 'pending' %}bg-warning text-dark
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ b.status|capitalize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if b.status == 'pending' %}
+                                    <form method="POST" action="{{ url_for('main.confirm_booking', booking_id=b.id) }}">
+                                        <button class="btn btn-sm btn-success" id="confirmAdmin{{ b.id }}">✓</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-3 mb-0">No bookings yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

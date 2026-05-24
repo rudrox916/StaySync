@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard – StaySync{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="mb-5">
+        <h1 class="fw-bold">Welcome back, {{ current_user.username }} 👋</h1>
+        <p class="text-muted">Here's an overview of your activity</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-panel p-4 h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-primary bg-opacity-25 text-primary rounded-3 p-3">
+                        <i class="bi bi-journal-text fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-3">{{ bookings|length }}</div>
+                        <div class="text-muted small">Total Bookings</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-panel p-4 h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-success bg-opacity-25 text-success rounded-3 p-3">
+                        <i class="bi bi-check-circle fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-3">{{ bookings|selectattr('status','equalto','confirmed')|list|length }}</div>
+                        <div class="text-muted small">Confirmed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-panel p-4 h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-warning bg-opacity-25 text-warning rounded-3 p-3">
+                        <i class="bi bi-clock-history fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-3">{{ bookings|selectattr('status','equalto','pending')|list|length }}</div>
+                        <div class="text-muted small">Pending</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-panel p-4 h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-info bg-opacity-25 text-info rounded-3 p-3">
+                        <i class="bi bi-currency-rupee fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-3">₹{{ "%.0f"|format(total_spent) }}</div>
+                        <div class="text-muted small">Total Spent</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bookings -->
+    <div class="glass-panel p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold mb-0">Recent Bookings</h4>
+            <a href="{{ url_for('main.my_bookings') }}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+
+        {% if bookings %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr class="text-muted small">
+                        <th>#ID</th>
+                        <th>Hotel / Room</th>
+                        <th>Check-In</th>
+                        <th>Check-Out</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings[:5] %}
+                    <tr>
+                        <td class="text-muted">#{{ b.id }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ b.room.hotel.name }}</div>
+                            <div class="text-muted small">Room {{ b.room.room_number }} – {{ b.room.type }}</div>
+                        </td>
+                        <td class="text-muted">{{ b.check_in_date.strftime('%d %b %Y') }}</td>
+                        <td class="text-muted">{{ b.check_out_date.strftime('%d %b %Y') }}</td>
+                        <td class="fw-semibold text-primary">₹{{ "%.0f"|format(b.total_price) }}</td>
+                        <td>
+                            <span class="badge
+                                {% if b.status == 'confirmed' %}bg-success
+                                {% elif b.status == 'pending' %}bg-warning text-dark
+                                {% else %}bg-danger{% endif %}">
+                                {{ b.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if b.status != 'cancelled' %}
+                            <form method="POST" action="{{ url_for('main.cancel_booking', booking_id=b.id) }}" onsubmit="return confirm('Cancel this booking?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" id="cancelBooking{{ b.id }}">Cancel</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-calendar-x fs-1 text-muted"></i>
+            <p class="text-muted mt-3 mb-3">No bookings yet</p>
+            <a href="{{ url_for('main.hotels') }}" class="btn btn-primary-custom">Browse Hotels</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

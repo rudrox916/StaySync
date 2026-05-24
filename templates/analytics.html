@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}Analytics Dashboard – StaySync{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.kpi-card        { border-left: 3px solid var(--gold); }
+.kpi-card .icon  { width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0; }
+.chart-card      { position:relative; }
+.chart-title     { font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:0.25rem; }
+.chart-sub       { font-size:0.78rem;color:var(--text-muted); }
+canvas           { max-height:280px; }
+.period-badge    { cursor:pointer;transition:background 0.2s,color 0.2s; }
+.period-badge.active { background:rgba(201,168,76,0.25)!important;color:var(--gold)!important;border-color:rgba(201,168,76,0.4)!important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <span class="section-badge mb-2 d-inline-block">Phase 2</span>
+            <h1 class="fw-bold mb-1" style="font-family:'Playfair Display',serif;">Analytics Dashboard</h1>
+            <p class="text-muted mb-0">Real-time revenue, occupancy and booking insights</p>
+        </div>
+        <div class="text-end">
+            <div class="text-muted small mb-1">Last updated</div>
+            <div class="fw-semibold" id="lastUpdated">—</div>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4" id="kpiRow">
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 kpi-card h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-currency-rupee"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Total Revenue</div>
+                        <div class="fw-bold fs-4" id="kpiTotalRevenue">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 kpi-card h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Total Bookings</div>
+                        <div class="fw-bold fs-4" id="kpiTotalBookings">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 kpi-card h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Occupancy Rate</div>
+                        <div class="fw-bold fs-4" id="kpiOccupancy">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-4 kpi-card h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon" style="background:rgba(201,168,76,0.1);color:var(--gold);">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Registered Users</div>
+                        <div class="fw-bold fs-4" id="kpiUsers">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 1: Revenue Line + Booking Status Doughnut -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="glass-panel p-4 chart-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="chart-title">Revenue Trend</div>
+                        <div class="chart-sub">Confirmed booking revenue over the last 12 months</div>
+                    </div>
+                    <span class="badge section-badge" style="font-size:0.7rem;">Monthly</span>
+                </div>
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="glass-panel p-4 chart-card h-100">
+                <div class="mb-3">
+                    <div class="chart-title">Bookings by Status</div>
+                    <div class="chart-sub">Distribution across all bookings</div>
+                </div>
+                <canvas id="statusChart" style="max-height:220px;"></canvas>
+                <div id="statusLegend" class="mt-3 d-flex flex-column gap-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2: Occupancy Bar + Top Hotels Horizontal Bar -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="glass-panel p-4 chart-card h-100">
+                <div class="mb-3">
+                    <div class="chart-title">Room Occupancy per Hotel</div>
+                    <div class="chart-sub">Active vs available rooms by property</div>
+                </div>
+                <canvas id="occupancyChart"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="glass-panel p-4 chart-card h-100">
+                <div class="mb-3">
+                    <div class="chart-title">Top Hotels by Revenue</div>
+                    <div class="chart-sub">Confirmed bookings revenue ranking</div>
+                </div>
+                <canvas id="topHotelsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3: Secondary KPI details -->
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="glass-panel p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="chart-title">This Month</span>
+                    <i class="bi bi-calendar-month text-muted"></i>
+                </div>
+                <div class="fw-bold fs-3 text-primary" id="kpiMonthlyRevenue">—</div>
+                <div class="text-muted small">Revenue this month</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-panel p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="chart-title">Active Bookings</span>
+                    <i class="bi bi-door-open text-muted"></i>
+                </div>
+                <div class="fw-bold fs-3 text-success" id="kpiActiveBookings">—</div>
+                <div class="text-muted small">Current stay-in bookings</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-panel p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="chart-title">Total Properties</span>
+                    <i class="bi bi-building text-muted"></i>
+                </div>
+                <div class="fw-bold fs-3" style="color:var(--gold);" id="kpiHotels">—</div>
+                <div class="text-muted small" id="kpiRooms">— rooms across all hotels</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Chart defaults ──────────────────────────────────────────────────
+Chart.defaults.color          = '#9A9080';
+Chart.defaults.borderColor    = 'rgba(201,168,76,0.12)';
+Chart.defaults.font.family    = 'Inter, sans-serif';
+
+const GOLD   = '#C9A84C';
+const GOLD_L = 'rgba(201,168,76,0.15)';
+const GREEN  = '#22C55E';
+const RED    = '#EF4444';
+const AMBER  = '#F59E0B';
+const BLUE   = '#38BDF8';
+
+// ── Helpers ─────────────────────────────────────────────────────────
+const fmt = v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:0});
+
+function initRevChart(labels, data) {
+    const ctx = document.getElementById('revenueChart');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Revenue (₹)',
+                data,
+                borderColor: GOLD,
+                backgroundColor: GOLD_L,
+                borderWidth: 2.5,
+                pointBackgroundColor: GOLD,
+                pointRadius: 4,
+                fill: true,
+                tension: 0.4,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    ticks: { callback: v => '₹' + (v/1000).toFixed(0) + 'k' },
+                    grid: { color: 'rgba(201,168,76,0.08)' }
+                }
+            }
+        }
+    });
+}
+
+function initStatusChart(labels, data) {
+    const colors = [GREEN, AMBER, RED];
+    const ctx = document.getElementById('statusChart');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }]
+        },
+        options: {
+            responsive: true,
+            cutout: '72%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw}` } }
+            }
+        }
+    });
+    // Custom legend
+    const leg = document.getElementById('statusLegend');
+    const total = data.reduce((a,b)=>a+b,0);
+    labels.forEach((l,i) => {
+        leg.innerHTML += `<div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:10px;height:10px;border-radius:50%;background:${colors[i]};display:inline-block;"></span>
+                <span class="small">${l}</span>
+            </div>
+            <span class="fw-semibold small">${data[i]} <span class="text-muted">(${total?Math.round(data[i]/total*100):0}%)</span></span>
+        </div>`;
+    });
+}
+
+function initOccupancyChart(labels, booked, available) {
+    const ctx = document.getElementById('occupancyChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Active',    data: booked,    backgroundColor: 'rgba(201,168,76,0.7)', borderRadius: 6, borderSkipped: false },
+                { label: 'Available', data: available, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6, borderSkipped: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { boxWidth: 10, padding: 16 } } },
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+                y: { stacked: true, grid: { color: 'rgba(201,168,76,0.08)' }, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+
+function initTopHotelsChart(labels, data) {
+    const ctx = document.getElementById('topHotelsChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Revenue (₹)',
+                data,
+                backgroundColor: [
+                    'rgba(201,168,76,0.8)', 'rgba(201,168,76,0.6)',
+                    'rgba(201,168,76,0.45)','rgba(201,168,76,0.3)',
+                    'rgba(201,168,76,0.18)'
+                ],
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(201,168,76,0.08)' }, ticks: { callback: v => '₹'+(v/1000).toFixed(0)+'k' } },
+                y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+// ── Fetch & render all data ─────────────────────────────────────────
+async function loadAll() {
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-IN');
+
+    const [kpis, revenue, status, occupancy, topHotels] = await Promise.all([
+        fetch('/analytics/api/kpis').then(r=>r.json()),
+        fetch('/analytics/api/revenue').then(r=>r.json()),
+        fetch('/analytics/api/bookings-status').then(r=>r.json()),
+        fetch('/analytics/api/occupancy').then(r=>r.json()),
+        fetch('/analytics/api/top-hotels').then(r=>r.json()),
+    ]);
+
+    // KPI Cards
+    document.getElementById('kpiTotalRevenue').textContent  = fmt(kpis.total_revenue);
+    document.getElementById('kpiTotalBookings').textContent = kpis.total_bookings;
+    document.getElementById('kpiOccupancy').textContent     = kpis.occupancy_rate + '%';
+    document.getElementById('kpiUsers').textContent         = kpis.total_users;
+    document.getElementById('kpiMonthlyRevenue').textContent= fmt(kpis.monthly_revenue);
+    document.getElementById('kpiActiveBookings').textContent= kpis.active_bookings;
+    document.getElementById('kpiHotels').textContent        = kpis.total_hotels;
+    document.getElementById('kpiRooms').textContent         = kpis.total_rooms + ' rooms across all hotels';
+
+    // Charts
+    if (revenue.labels.length) initRevChart(revenue.labels, revenue.data);
+    initStatusChart(status.labels, status.data);
+    if (occupancy.labels.length) initOccupancyChart(occupancy.labels, occupancy.booked, occupancy.available);
+    if (topHotels.labels.length) initTopHotelsChart(topHotels.labels, topHotels.data);
+}
+
+loadAll();
+</script>
+{% endblock %}
